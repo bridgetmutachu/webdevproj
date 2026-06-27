@@ -14,7 +14,7 @@ const Services = () =>{
         { image: img2, title: "Home and Office cleaning" },
         { image: img3, title: "Electrical" },
         { image: img4, title: "Gardening" },
-        { image: img5, title: "Hair Syling" },
+        { image: img5, title: "Hair Styling" },
         { image: img6, title: "Barber" },
         { image: img7, title: "Plumbing" },
         { image: img8, title: "Cooking" },
