@@ -1,6 +1,6 @@
 const services = [
   {
-    image: "assets/laundry-dry-cleaning-rafiki.png",
+    image: "assets/laundry-dry-cleaning-rafiki.jpg",
     title: "Laundry",
     desc: "Professional laundry and dry cleaning from your doorstep. We pick up, wash, iron and deliver back to you.",
     rating: "4.9 ⭐ (312 reviews)",
@@ -8,7 +8,7 @@ const services = [
     workers: "148 workers available"
   },
   {
-    image: "assets/cleaning-service-rafiki.png",
+    image: "assets/cleaning-service-rafiki.avif",
     title: "Home & Office Cleaning",
     desc: "Thorough cleaning of homes and offices by trained professionals with quality cleaning supplies included.",
     rating: "4.8 ⭐ (275 reviews)",
@@ -16,7 +16,7 @@ const services = [
     workers: "201 workers available"
   },
   {
-    image: "assets/electrician-pana.png",
+    image: "assets/electrician-pana.jpg",
     title: "Electrical",
     desc: "Licensed electricians for wiring, repairs, installations, and fault-finding. Safety-certified and insured.",
     rating: "4.7 ⭐ (189 reviews)",
@@ -24,7 +24,7 @@ const services = [
     workers: "87 workers available"
   },
   {
-    image: "assets/gardening-cuate.png",
+    image: "assets/gardening-cuate.jpg",
     title: "Gardening",
     desc: "Lawn mowing, pruning, planting and full garden makeovers. Regular or one-off sessions available.",
     rating: "4.9 ⭐ (143 reviews)",
@@ -32,7 +32,7 @@ const services = [
     workers: "64 workers available"
   },
   {
-    image: "assets/hairdresser-team-rafiki.png",
+    image: "assets/hairdresser-team-rafiki.jpg",
     title: "Hair Styling",
     desc: "Expert stylists for braids, perms, treatments and cuts. Home visit or salon — you choose.",
     rating: "4.8 ⭐ (230 reviews)",
@@ -40,7 +40,7 @@ const services = [
     workers: "175 workers available"
   },
   {
-    image: "assets/barber-pana.png",
+    image: "assets/barber-pana.jpg",
     title: "Barber",
     desc: "Classic cuts, fades, beard trims and grooming by skilled barbers who come to you.",
     rating: "4.9 ⭐ (298 reviews)",
@@ -48,7 +48,7 @@ const services = [
     workers: "119 workers available"
   },
   {
-    image: "assets/pipeline-maintenance-rafiki.png",
+    image: "assets/pipeline-maintenance-rafiki.jpg",
     title: "Plumbing",
     desc: "Fast plumbing repairs, pipe installation, leaks and blockages fixed by certified plumbers.",
     rating: "4.7 ⭐ (167 reviews)",
@@ -56,7 +56,7 @@ const services = [
     workers: "93 workers available"
   },
   {
-    image: "assets/chef-pana.png",
+    image: "assets/chef-pana.jpg",
     title: "Cooking",
     desc: "Private chefs and cooks for daily meals, events and meal prep. Local cuisines and special diets catered for.",
     rating: "4.8 ⭐ (212 reviews)",
@@ -91,8 +91,16 @@ services.forEach((service) => {
 // Modal logic
 const overlay = document.getElementById("modal-overlay");
 const modalClose = document.getElementById("modal-close");
+const modalBookBtn = document.getElementById("modal-book-btn");
+const modalDateGroup = document.getElementById("modal-date-group");
+const modalDateInput = document.getElementById("modal-date");
+const modalMsg = document.getElementById("modal-msg");
+
+let activeService = null;
 
 function openModal(service) {
+  activeService = service;
+
   document.getElementById("modal-img").src = service.image;
   document.getElementById("modal-img").alt = service.title;
   document.getElementById("modal-title").textContent = service.title;
@@ -100,6 +108,33 @@ function openModal(service) {
   document.getElementById("modal-rating").textContent = service.rating;
   document.getElementById("modal-price").textContent = service.price;
   document.getElementById("modal-workers").textContent = service.workers;
+
+  modalMsg.textContent = "";
+  modalMsg.style.color = "#b00020";
+
+  const session = jkGetSession();
+  const today = new Date().toISOString().slice(0, 10);
+
+  if (session && session.role === "customer") {
+    // Signed in as a customer: let them pick a date and confirm.
+    modalDateGroup.hidden = false;
+    modalDateInput.min = today;
+    modalDateInput.value = today;
+    modalBookBtn.textContent = "Confirm Booking";
+    modalBookBtn.disabled = false;
+  } else if (session) {
+    // Signed in, but as an artisan/admin — booking isn't for them.
+    modalDateGroup.hidden = true;
+    modalBookBtn.textContent = "Book Now";
+    modalBookBtn.disabled = false;
+    modalMsg.textContent = "Sign in with a customer account to book a service.";
+  } else {
+    // Not signed in at all.
+    modalDateGroup.hidden = true;
+    modalBookBtn.textContent = "Sign Up to Book";
+    modalBookBtn.disabled = false;
+  }
+
   overlay.hidden = false;
   document.body.style.overflow = "hidden";
 }
@@ -107,7 +142,51 @@ function openModal(service) {
 function closeModal() {
   overlay.hidden = true;
   document.body.style.overflow = "";
+  activeService = null;
 }
+
+modalBookBtn.addEventListener("click", () => {
+  if (!activeService) return;
+  const session = jkGetSession();
+
+  if (!session) {
+    window.location.href = "signup.html";
+    return;
+  }
+
+  if (session.role !== "customer") {
+    modalMsg.style.color = "#b00020";
+    modalMsg.textContent = "Sign in with a customer account to book a service.";
+    return;
+  }
+
+  const date = modalDateInput.value;
+  if (!date) {
+    modalMsg.style.color = "#b00020";
+    modalMsg.textContent = "Please choose a preferred date.";
+    return;
+  }
+
+  const result = jkCreateBooking({
+    serviceTitle: activeService.title,
+    price: activeService.price.replace(/^From\s*/i, ""),
+    date,
+  });
+
+  if (!result.ok) {
+    modalMsg.style.color = "#b00020";
+    modalMsg.textContent = result.error;
+    return;
+  }
+
+  modalMsg.style.color = "#1a6e3c";
+  modalMsg.textContent = `Booked! ${result.booking.artisanName} will confirm shortly. Redirecting to your dashboard...`;
+  modalBookBtn.disabled = true;
+
+  setTimeout(() => {
+    window.location.href = "dashboard-customer.html";
+  }, 900);
+});
 
 modalClose.addEventListener("click", closeModal);
 overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
