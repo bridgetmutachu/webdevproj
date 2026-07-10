@@ -32,12 +32,26 @@ form.addEventListener("submit", (event) => {
     return;
   }
 
+  const role = roleSelect.value;
+  const fullname = document.getElementById("fullname").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+  const skill = skillSelect.value;
 
-  const name = document.getElementById("fullname").value;
-  alert(
-    `Welcome to Jua Kali, ${name}! (Front-end only for now — no account was actually saved.)`
-  );
+  const result = jkRegister({ role, fullname, email, phone, password, skill });
 
-  form.reset();
-  skillGroup.hidden = true;
+  if (!result.ok) {
+    errorBox.textContent = result.error;
+    return;
+  }
+
+  const destination = jkDashboardFor(result.user.role);
+  const message = role === "artisan"
+    ? `Welcome to Jua Kali, ${fullname}! Your artisan account is created and pending verification — taking you to your dashboard...`
+    : `Welcome to Jua Kali, ${fullname}! Taking you to your dashboard...`;
+
+  errorBox.style.color = "#1a6e3c";
+  errorBox.textContent = message;
+
+  setTimeout(() => { window.location.href = destination; }, 900);
 });
